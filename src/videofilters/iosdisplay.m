@@ -39,6 +39,7 @@
 #import <OpenGLES/ES2/gl.h>
 
 #include "opengles_display.h"
+#import "GPUImage.h"
 
 @interface IOSDisplay : UIView {
 @public
@@ -111,7 +112,8 @@
 
 - (void)initOpenGL {
 	// Init OpenGL context
-	context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+//	context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+    context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 sharegroup:[[[GPUImageContext sharedImageProcessingContext] context] sharegroup]];
 	if (!context || ![EAGLContext setCurrentContext:context]) {
 		ms_error("Opengl context failure");
 		return;

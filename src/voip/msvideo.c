@@ -711,14 +711,23 @@ static void rotate_plane_down_scale_by_2(int wDest, int hDest, int full_width, c
 #ifdef __ANDROID__
 
 static int hasNeon = -1;
-#elif MS_HAS_ARM_NEON
-static int hasNeon = 1;
-#elif MS_HAS_ARM
-static int hasNeon = 0;
+//#elif MS_HAS_ARM_NEON
+//static int hasNeon = 1;
+//#elif MS_HAS_ARM
+//static int hasNeon = 0;
 #endif
 
 /* Destination and source images may have their dimensions inverted.*/
-mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond, bool_t down_scale) {
+
+mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBufAllocator *allocator,
+                                                                         const uint8_t* y,
+                                                                         const uint8_t * cbcr,
+                                                                         int rotation,
+                                                                         int w, int h,
+                                                                         int y_byte_per_row,
+                                                                         int cbcr_byte_per_row,
+                                                                         bool_t uFirstvSecond,
+                                                                         bool_t down_scale) {
 	MSPicture pict;
 	int uv_w=w/2;
 	int uv_h=h/2;
@@ -726,18 +735,18 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBu
 	uint8_t* dstu;
 	const uint8_t* srcv;
 	uint8_t* dstv;
-	int factor = down_scale?2:1;
+	int factor = 1;
 	mblk_t * yuv_block;
 
-#ifdef __ANDROID__
-	if (hasNeon == -1) {
-		hasNeon = (((android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM) && ((android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0))
-			|| (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM64));
-	#ifdef __aarch64__
-		ms_warning("Warning: ARM64 NEON routines for video rotation are not yet implemented for Android: using SOFT version!");
-	#endif
-	}
-#endif
+//#ifdef __ANDROID__
+//	if (hasNeon == -1) {
+//		hasNeon = (((android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM) && ((android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0))
+//			|| (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM64));
+//	#ifdef __aarch64__
+//		ms_warning("Warning: ARM64 NEON routines for video rotation are not yet implemented for Android: using SOFT version!");
+//	#endif
+//	}
+//#endif
 	
 	yuv_block = ms_yuv_buf_allocator_get(allocator, &pict, w, h);
 
@@ -748,25 +757,32 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBu
 	}
 
 	if (rotation % 180 == 0) {
+        ms_warning("rotation / 180 == 0");
 		int i,j;
-		uint8_t* u_dest=pict.planes[1], *v_dest=pict.planes[2];
+        uint8_t* u_dest=pict.planes[1];
+        uint8_t* v_dest=pict.planes[2];
 
 		if (rotation == 0) {
-#if MS_HAS_ARM
-			if (hasNeon) {
-				deinterlace_down_scale_neon(y, cbcr, pict.planes[0], u_dest, v_dest, w, h, y_byte_per_row, cbcr_byte_per_row,down_scale);
-			} else
-#endif
-			{
+//#if MS_HAS_ARM
+//			if (hasNeon) {
+//                ms_warning("MS_HAS_ARM hasNeon and rotation = 0");
+//				deinterlace_down_scale_neon(y, cbcr, pict.planes[0], u_dest, v_dest, w, h, y_byte_per_row, cbcr_byte_per_row,down_scale);
+//			} else
+//#endif
+//			{
+                ms_warning("NO ARM rotation h = %d,  y_byte_per_row = %d",h, y_byte_per_row);
+            
 				// plain copy
 				for(i=0; i<h; i++) {
-					if (down_scale) {
-						for(j=0 ; j<w;j++) {
-							pict.planes[0][i*w+j] = y[i*2*y_byte_per_row+j*2];
-						}
-					} else {
-						memcpy(&pict.planes[0][i*w], &y[i*y_byte_per_row], w);
-					}
+//					if (down_scale) {
+//						for(j=0 ; j<w;j++) {
+//							pict.planes[0][i*w+j] = y[i*2*y_byte_per_row+j*2];
+//						}
+//					} else {
+                    ms_warning("y[i*y_byte_per_row] = %d",i*y_byte_per_row);
+                    memcpy(&pict.planes[0][i*w], &y[i*y_byte_per_row], w);
+                    
+//					}
 				}
 				// de-interlace u/v
 				for (i=0; i<uv_h; i++) {
@@ -775,14 +791,16 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBu
 						*v_dest++ = cbcr[cbcr_byte_per_row*i*factor + 2*j*factor + 1];
 					}
 				}
-			}
+//			}
 		} else {
-#if defined(__arm__)
-			if (hasNeon) {
-				deinterlace_down_scale_and_rotate_180_neon(y, cbcr, pict.planes[0], u_dest, v_dest, w, h, y_byte_per_row, cbcr_byte_per_row,down_scale);
-			} else
-#endif
-			{
+//#if defined(__arm__)
+//			if (hasNeon) {
+//                ms_warning("MS_HAS_ARM hasNeon and rotation != 0");
+//				deinterlace_down_scale_and_rotate_180_neon(y, cbcr, pict.planes[0], u_dest, v_dest, w, h, y_byte_per_row, cbcr_byte_per_row,down_scale);
+//			} else
+//#endif
+//			{
+                ms_warning("NO ARM no neon and rotation != 0");
 				// 180° y rotation
 				for(i=0; i<h; i++) {
 					for(j=0 ; j<w;j++) {
@@ -796,32 +814,36 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBu
 						*v_dest++ = cbcr[cbcr_byte_per_row*(uv_h-1-i)*factor + 2*(uv_w-1-j)*factor + 1];
 					}
 				}
-			}
+//			}
 		}
 	} else {
+        ms_warning("2 rotation / 180 != 0");
 		bool_t clockwise = rotation == 90 ? TRUE : FALSE;
 		// Rotate Y
-#if defined(__arm__)
-		if (hasNeon) {
-			if (clockwise) {
-				rotate_down_scale_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0],down_scale);
-			} else {
-				rotate_down_scale_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0], down_scale);
-			}
-		} else
-#endif
-{
+//#if defined(__arm__)
+//		if (hasNeon) {
+//            ms_warning("2// ARM Neon 1");
+//			if (clockwise) {
+//				rotate_down_scale_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0],down_scale);
+//			} else {
+//				rotate_down_scale_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0], down_scale);
+//			}
+//		} else
+//#endif
+        {
+            ms_warning("2// No ARM ");
 			uint8_t* dsty = pict.planes[0];
 			uint8_t* srcy = (uint8_t*) y;
 			rotate_plane_down_scale_by_2(w,h,y_byte_per_row,srcy,dsty,1, clockwise, down_scale);
 		}
 
-#if defined(__arm__)
-		if (hasNeon) {
-			rotate_down_scale_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise,down_scale);
-		} else
-#endif
-{
+//#if defined(__arm__)
+//		if (hasNeon) {
+//             ms_warning("2//ARM NEON 2");
+//			rotate_down_scale_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise,down_scale);
+//		} else
+//#endif
+        {
 			// Copying U
 			srcu = cbcr;
 			dstu = pict.planes[1];
@@ -835,6 +857,8 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBu
 
 	return yuv_block;
 }
+
+
 
 mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond) {
 	return copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(allocator, y, cbcr, rotation, w, h, y_byte_per_row, cbcr_byte_per_row, uFirstvSecond, FALSE);

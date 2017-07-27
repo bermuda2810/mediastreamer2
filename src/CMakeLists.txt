@@ -258,6 +258,13 @@ endif()
 if(IOS)
 	list(APPEND VOIP_SOURCE_FILES_OBJC audiofilters/msiounit.m)
 endif()
+if(WIN32)
+	list(APPEND VOIP_SOURCE_FILES_CXX
+		audiofilters/mswasapi.cpp
+		audiofilters/mswasapi_reader.cpp
+		audiofilters/mswasapi_writer.cpp
+	)
+endif()
 
 if(ENABLE_G726)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/g726.c)
@@ -331,14 +338,185 @@ if(ENABLE_VIDEO)
 				utils/opengles_display.h
 				utils/shader_util.c
 				utils/shader_util.h
-				voip/scaler.c
+				voip/scaler.c                		
 			)
+
 			list(APPEND VOIP_SOURCE_FILES_OBJC
 				videofilters/iosdisplay.m
 				videofilters/ioscapture.m
 				voip/ioshardware.m
-			)
-		else()
+                		GPUImage/GLProgram.m
+				GPUImage/GPUImage3x3ConvolutionFilter.m
+				GPUImage/GPUImage3x3TextureSamplingFilter.m
+				GPUImage/GPUImageAdaptiveThresholdFilter.m
+				GPUImage/GPUImageAddBlendFilter.m
+				GPUImage/GPUImageAlphaBlendFilter.m
+				GPUImage/GPUImageAmatorkaFilter.m
+				GPUImage/GPUImageAverageColor.m
+				GPUImage/GPUImageAverageLuminanceThresholdFilter.m
+				GPUImage/GPUImageBilateralFilter.m
+				GPUImage/GPUImageBoxBlurFilter.m
+				GPUImage/GPUImageBrightnessFilter.m
+				GPUImage/GPUImageBuffer.m
+				GPUImage/GPUImageBulgeDistortionFilter.m
+				GPUImage/GPUImageCannyEdgeDetectionFilter.m
+				GPUImage/GPUImageCGAColorspaceFilter.m
+				GPUImage/GPUImageChromaKeyBlendFilter.m
+				GPUImage/GPUImageChromaKeyFilter.m
+				GPUImage/GPUImageClosingFilter.m
+				GPUImage/GPUImageColorBlendFilter.m
+				GPUImage/GPUImageColorBurnBlendFilter.m
+				GPUImage/GPUImageColorConversion.m
+				GPUImage/GPUImageColorDodgeBlendFilter.m
+				GPUImage/GPUImageColorInvertFilter.m
+				GPUImage/GPUImageColorLocalBinaryPatternFilter.m
+				GPUImage/GPUImageColorMatrixFilter.m
+				GPUImage/GPUImageColorPackingFilter.m
+				GPUImage/GPUImageColourFASTFeatureDetector.m
+				GPUImage/GPUImageColourFASTSamplingOperation.m
+				GPUImage/GPUImageContrastFilter.m
+				GPUImage/GPUImageCropFilter.m
+				GPUImage/GPUImageCrosshairGenerator.m
+				GPUImage/GPUImageCrosshatchFilter.m
+				GPUImage/GPUImageDarkenBlendFilter.m
+				GPUImage/GPUImageDifferenceBlendFilter.m
+				GPUImage/GPUImageDilationFilter.m
+				GPUImage/GPUImageDirectionalNonMaximumSuppressionFilter.m
+				GPUImage/GPUImageDirectionalSobelEdgeDetectionFilter.m
+				GPUImage/GPUImageDissolveBlendFilter.m
+				GPUImage/GPUImageDivideBlendFilter.m
+				GPUImage/GPUImageEmbossFilter.m
+				GPUImage/GPUImageErosionFilter.m
+				GPUImage/GPUImageExclusionBlendFilter.m
+				GPUImage/GPUImageExposureFilter.m
+				GPUImage/GPUImageFalseColorFilter.m
+				GPUImage/GPUImageFASTCornerDetectionFilter.m
+				GPUImage/GPUImageFilter.m
+				GPUImage/GPUImageFilterGroup.m
+				GPUImage/GPUImageFilterPipeline.m
+				GPUImage/GPUImageFourInputFilter.m
+				GPUImage/GPUImageFramebuffer.m
+				GPUImage/GPUImageFramebufferCache.m
+				GPUImage/GPUImageGammaFilter.m
+				GPUImage/GPUImageGaussianBlurFilter.m
+				GPUImage/GPUImageGaussianBlurPositionFilter.m
+				GPUImage/GPUImageGaussianSelectiveBlurFilter.m
+				GPUImage/GPUImageGlassSphereFilter.m
+				GPUImage/GPUImageGrayscaleFilter.m
+				GPUImage/GPUImageHalftoneFilter.m
+				GPUImage/GPUImageHardLightBlendFilter.m
+				GPUImage/GPUImageHarrisCornerDetectionFilter.m
+				GPUImage/GPUImageHazeFilter.m
+				GPUImage/GPUImageHighlightShadowFilter.m
+				GPUImage/GPUImageHighlightShadowTintFilter.m
+				GPUImage/GPUImageHighPassFilter.m
+				GPUImage/GPUImageHistogramEqualizationFilter.m
+				GPUImage/GPUImageHistogramFilter.m
+				GPUImage/GPUImageHistogramGenerator.m
+				GPUImage/GPUImageHoughTransformLineDetector.m
+				GPUImage/GPUImageHSBFilter.m
+				GPUImage/GPUImageHueBlendFilter.m
+				GPUImage/GPUImageHueFilter.m
+				GPUImage/GPUImageiOSBlurFilter.m
+				GPUImage/GPUImageJFAVoronoiFilter.m
+				GPUImage/GPUImageKuwaharaFilter.m
+				GPUImage/GPUImageKuwaharaRadius3Filter.m
+				GPUImage/GPUImageLanczosResamplingFilter.m
+				GPUImage/GPUImageLaplacianFilter.m
+				GPUImage/GPUImageLevelsFilter.m
+				GPUImage/GPUImageLightenBlendFilter.m
+				GPUImage/GPUImageLinearBurnBlendFilter.m
+				GPUImage/GPUImageLineGenerator.m
+				GPUImage/GPUImageLocalBinaryPatternFilter.m
+				GPUImage/GPUImageLookupFilter.m
+				GPUImage/GPUImageLowPassFilter.m
+				GPUImage/GPUImageLuminanceRangeFilter.m
+				GPUImage/GPUImageLuminanceThresholdFilter.m
+				GPUImage/GPUImageLuminosity.m
+				GPUImage/GPUImageLuminosityBlendFilter.m
+				GPUImage/GPUImageMaskFilter.m
+				GPUImage/GPUImageMedianFilter.m
+				GPUImage/GPUImageMissEtikateFilter.m
+				GPUImage/GPUImageMonochromeFilter.m
+				GPUImage/GPUImageMosaicFilter.m
+				GPUImage/GPUImageMotionBlurFilter.m
+				GPUImage/GPUImageMotionDetector.m
+				GPUImage/GPUImageMovie.m
+				GPUImage/GPUImageMovieComposition.m
+				GPUImage/GPUImageMultiplyBlendFilter.m
+				GPUImage/GPUImageNobleCornerDetectionFilter.m
+				GPUImage/GPUImageNonMaximumSuppressionFilter.m
+				GPUImage/GPUImageNormalBlendFilter.m
+				GPUImage/GPUImageOpacityFilter.m
+				GPUImage/GPUImageOpeningFilter.m
+				GPUImage/GPUImageOutput.m
+				GPUImage/GPUImageOverlayBlendFilter.m
+				GPUImage/GPUImageParallelCoordinateLineTransformFilter.m
+				GPUImage/GPUImagePerlinNoiseFilter.m
+				GPUImage/GPUImagePinchDistortionFilter.m
+				GPUImage/GPUImagePixellateFilter.m
+				GPUImage/GPUImagePixellatePositionFilter.m
+				GPUImage/GPUImagePoissonBlendFilter.m
+				GPUImage/GPUImagePolarPixellateFilter.m
+				GPUImage/GPUImagePolkaDotFilter.m
+				GPUImage/GPUImagePosterizeFilter.m
+				GPUImage/GPUImagePrewittEdgeDetectionFilter.m
+				GPUImage/GPUImageRawDataInput.m
+				GPUImage/GPUImageRawDataOutput.m
+				GPUImage/GPUImageRGBClosingFilter.m
+				GPUImage/GPUImageRGBDilationFilter.m
+				GPUImage/GPUImageRGBErosionFilter.m
+				GPUImage/GPUImageRGBFilter.m
+				GPUImage/GPUImageRGBOpeningFilter.m
+				GPUImage/GPUImageSaturationBlendFilter.m
+				GPUImage/GPUImageSaturationFilter.m
+				GPUImage/GPUImageScreenBlendFilter.m
+				GPUImage/GPUImageSepiaFilter.m
+				GPUImage/GPUImageSharpenFilter.m
+				GPUImage/GPUImageShiTomasiFeatureDetectionFilter.m
+				GPUImage/GPUImageSingleComponentGaussianBlurFilter.m
+				GPUImage/GPUImageSketchFilter.m
+				GPUImage/GPUImageSkinToneFilter.m
+				GPUImage/GPUImageSmoothToonFilter.m
+				GPUImage/GPUImageSobelEdgeDetectionFilter.m
+				GPUImage/GPUImageSoftEleganceFilter.m
+				GPUImage/GPUImageSoftLightBlendFilter.m
+				GPUImage/GPUImageSolarizeFilter.m
+				GPUImage/GPUImageSolidColorGenerator.m
+				GPUImage/GPUImageSourceOverBlendFilter.m
+				GPUImage/GPUImageSphereRefractionFilter.m
+				GPUImage/GPUImageStillCamera.m
+				GPUImage/GPUImageStretchDistortionFilter.m
+				GPUImage/GPUImageSubtractBlendFilter.m
+				GPUImage/GPUImageSwirlFilter.m
+				GPUImage/GPUImageTextureInput.m
+				GPUImage/GPUImageTextureOutput.m
+				GPUImage/GPUImageThreeInputFilter.m
+				GPUImage/GPUImageThresholdEdgeDetectionFilter.m
+				GPUImage/GPUImageThresholdedNonMaximumSuppressionFilter.m
+				GPUImage/GPUImageThresholdSketchFilter.m
+				GPUImage/GPUImageTiltShiftFilter.m
+				GPUImage/GPUImageToneCurveFilter.m
+				GPUImage/GPUImageToonFilter.m
+				GPUImage/GPUImageTransformFilter.m
+				GPUImage/GPUImageTwoInputCrossTextureSamplingFilter.m
+				GPUImage/GPUImageTwoInputFilter.m
+				GPUImage/GPUImageTwoPassFilter.m
+				GPUImage/GPUImageTwoPassTextureSamplingFilter.m
+				GPUImage/GPUImageUIElement.m
+				GPUImage/GPUImageVideoCamera.m
+				GPUImage/GPUImageVignetteFilter.m
+				GPUImage/GPUImageVoronoiConsumerFilter.m
+				GPUImage/GPUImageWeakPixelInclusionFilter.m
+				GPUImage/GPUImageXYDerivativeFilter.m
+				GPUImage/GPUImageZoomBlurFilter.m
+				GPUImage/GPUImageContext.m
+				GPUImage/GPUImageMovieWriter.m
+				GPUImage/GPUImagePicture.m
+				GPUImage/GPUImagePicture+TextureSubimage.m		
+				GPUImage/GPUImageView.m
+             	      	)
+						else()
 			list(APPEND VOIP_SOURCE_FILES_OBJC
 				videofilters/msosxdisplay.m
 				videofilters/avfound-capture.m
