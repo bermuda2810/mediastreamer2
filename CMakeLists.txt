@@ -354,6 +354,8 @@ include_directories(
 	src/audiofilters
 	src/utils
 	src/voip
+	src/GPUImage
+	src/LFLiveKit
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
 )
