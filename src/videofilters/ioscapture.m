@@ -139,7 +139,6 @@ static void capture_queue_cleanup(void* p) {
     
     filter = [[GPUImageToonFilter alloc] init];
     [videoCamera addTarget:filter];
-    
     [mRawOutput setNewFrameAvailableBlock:^{
         @try {
             [mRawOutput lockFramebufferForReading];
@@ -185,7 +184,7 @@ static void capture_queue_cleanup(void* p) {
             [mRawOutput unlockFramebufferAfterReading];
         }
     }];
-    
+    [filter addTarget:mRawOutput];
     //	output = [[AVCaptureVideoDataOutput  alloc] init];
 
 	bufAllocator = ms_yuv_buf_allocator_new();
