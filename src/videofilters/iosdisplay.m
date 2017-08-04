@@ -112,8 +112,7 @@
 
 - (void)initOpenGL {
 	// Init OpenGL context
-//	context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-    context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 sharegroup:[[[GPUImageContext sharedImageProcessingContext] context] sharegroup]];
+	context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
 	if (!context || ![EAGLContext setCurrentContext:context]) {
 		ms_error("Opengl context failure");
 		return;
@@ -124,7 +123,6 @@
 	glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
-
 	ogl_display_init(display_helper, NULL, prevBounds.size.width, prevBounds.size.height);
 
 	// release GL context for this thread

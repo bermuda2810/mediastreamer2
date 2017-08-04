@@ -355,7 +355,6 @@ include_directories(
 	src/utils
 	src/voip
 	src/GPUImage
-	src/LFLiveKit
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
 )
@@ -637,4 +636,14 @@ install(FILES
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 
-add_subdirectory(build)
+# CPack settings
+set(CPACK_PACKAGE_NAME "mediastreamer")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+set(CPACK_SOURCE_IGNORE_FILES
+        "^${CMAKE_BINARY_DIR}"
+        "/\\\\..+"
+)
+
+include(CPack)

@@ -62,7 +62,7 @@ NSString *const kGPUImagePassthroughFragmentShaderString = SHADER_STRING
 		return nil;
     }
 
-    uniformStateRestorationBlocks = [NSMutableDictionary dictionaryWithCapacity:10];
+    uniformStateRestorationBlocks = [[NSMutableDictionary alloc] initWithCapacity:10];
     _preventRendering = NO;
     currentlyReceivingMonochromeInput = NO;
     inputRotation = kGPUImageNoRotation;
@@ -546,9 +546,9 @@ NSString *const kGPUImagePassthroughFragmentShaderString = SHADER_STRING
 
 - (void)setUniformsForProgramAtIndex:(NSUInteger)programIndex;
 {
-    [uniformStateRestorationBlocks enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop){
-        dispatch_block_t currentBlock = obj;
-        currentBlock();
+    [uniformStateRestorationBlocks enumerateKeysAndObjectsUsingBlock:^(id key, id obj,  BOOL *stop){
+            dispatch_block_t currentBlock = obj;
+            currentBlock();
     }];
 }
 

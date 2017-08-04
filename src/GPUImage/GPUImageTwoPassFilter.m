@@ -12,7 +12,7 @@
 		return nil;
     }
     
-    secondProgramUniformStateRestorationBlocks = [NSMutableDictionary dictionaryWithCapacity:10];
+    secondProgramUniformStateRestorationBlocks = [[NSMutableDictionary alloc] initWithCapacity:10];
 
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];

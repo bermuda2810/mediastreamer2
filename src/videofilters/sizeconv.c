@@ -146,20 +146,20 @@ static void size_conv_process(MSFilter *f){
 	}
 	while((im=getq(&s->rq))!=NULL ){
 		if (ms_yuv_buf_init_from_mblk(&inbuf,im)==0){
-			if (inbuf.w==s->target_vsize.width &&
-				inbuf.h==s->target_vsize.height){
+//			if (inbuf.w==s->target_vsize.width &&
+//				inbuf.h==s->target_vsize.height){
 				ms_queue_put(f->outputs[0],im);
-			}else{
-				MSScalerContext *sws_ctx=get_resampler(s,inbuf.w,inbuf.h);
-				mblk_t *om=size_conv_alloc_mblk(s);
-				if (ms_scaler_process(sws_ctx,inbuf.planes,inbuf.strides,s->outbuf.planes, s->outbuf.strides)<0){
-					ms_error("MSSizeConv: error in ms_scaler_process().");
-					freemsg(om);
-				}else{
-					ms_queue_put(f->outputs[0],om);
-				}
-				freemsg(im);
-			}
+//			}else{
+//				MSScalerContext *sws_ctx=get_resampler(s,inbuf.w,inbuf.h);
+//				mblk_t *om=size_conv_alloc_mblk(s);
+//				if (ms_scaler_process(sws_ctx,inbuf.planes,inbuf.strides,s->outbuf.planes, s->outbuf.strides)<0){
+//					ms_error("MSSizeConv: error in ms_scaler_process().");
+//					freemsg(om);
+//				}else{
+//					ms_queue_put(f->outputs[0],om);
+//				}
+//				freemsg(im);
+//			}
 			s->frame_count++;
 		}else{
 			ms_warning("size_conv_process(): bad buffer.");

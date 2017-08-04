@@ -338,14 +338,13 @@ if(ENABLE_VIDEO)
 				utils/opengles_display.h
 				utils/shader_util.c
 				utils/shader_util.h
-				voip/scaler.c                		
+				voip/scaler.c
 			)
-
 			list(APPEND VOIP_SOURCE_FILES_OBJC
 				videofilters/iosdisplay.m
 				videofilters/ioscapture.m
 				voip/ioshardware.m
-                		GPUImage/GLProgram.m
+GPUImage/GLProgram.m
 				GPUImage/GPUImage3x3ConvolutionFilter.m
 				GPUImage/GPUImage3x3TextureSamplingFilter.m
 				GPUImage/GPUImageAdaptiveThresholdFilter.m
@@ -515,8 +514,10 @@ if(ENABLE_VIDEO)
 				GPUImage/GPUImagePicture.m
 				GPUImage/GPUImagePicture+TextureSubimage.m		
 				GPUImage/GPUImageView.m
-             	      	)
-						else()
+				GPUImage/LFGPUImageBeautyFilter.m
+				GPUImage/GPUImageBeautifyFilter.m
+			)
+		else()
 			list(APPEND VOIP_SOURCE_FILES_OBJC
 				videofilters/msosxdisplay.m
 				videofilters/avfound-capture.m
@@ -604,9 +605,6 @@ if(ENABLE_VIDEO)
 			utils/shader_util.c
 			videofilters/glxvideo.c
 		)
-	endif()
-	if(NOT APPLE AND NOT ANDROID AND OPENGL_FOUND OR QTANGLE_FOUND OR GLX_FOUND)
-		find_package(Glew REQUIRED)
 	endif()
 	if(SDL_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C videofilters/videoout.c)
@@ -795,9 +793,6 @@ if(XV_FOUND)
 endif()
 if(GLX_FOUND)
 	list(APPEND VOIP_LIBS ${GLX_LIBRARIES})
-endif()
-if(GLEW_FOUND)
-	list(APPEND VOIP_LIBS ${GLEW_LIBRARIES})
 endif()
 if(THEORA_FOUND)
 	list(APPEND VOIP_LIBS ${THEORA_LIBRARIES})
