@@ -494,9 +494,11 @@ static void ogl_display_render_type(
 	GL_OPERATION(f, glActiveTexture(GL_TEXTURE0))
 	GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][Y]))
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_Y], 0))
+    
 	GL_OPERATION(f, glActiveTexture(GL_TEXTURE1))
 	GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][U]))
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_U], 1))
+    
 	GL_OPERATION(f, glActiveTexture(GL_TEXTURE2))
 	GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][V]))
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))

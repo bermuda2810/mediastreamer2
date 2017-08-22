@@ -542,7 +542,6 @@ void deinterlace_down_scale_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, ui
 			ydest_ptr+=w;
 		}
 		ysrc_ptr= ysrc +  y* y_byte_per_row;
-		
 	}
 	// de-interlace u/v
 	for(y=0; y < (src_h>>1); y+=y_inc) {

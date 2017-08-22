@@ -31,11 +31,6 @@
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
 #import <QuartzCore/CALayer.h>
-#import <CoreGraphics/CGDataProvider.h>
-#import <CoreGraphics/CGImage.h>
-#import <CoreGraphics/CGContext.h>
-#import <CoreGraphics/CGBitmapContext.h>
-#import "GPUImage.h"
 
 #if !TARGET_IPHONE_SIMULATOR
 
@@ -72,10 +67,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
     MSAverageFPS averageFps;
     char fps_context[64];
     const char *deviceId;
-    GPUImageVideoCamera *videoCamera;
-    GPUImageBrightnessFilter *filter;
     MSYuvBufAllocator* bufAllocator;
-    GPUImageRawDataOutput *mRawOutput;
 };
 
 - (void)initIOSCapture;
@@ -129,70 +121,9 @@ static void capture_queue_cleanup(void* p) {
 - (void)initIOSCapture {
     msframe = NULL;
     ms_mutex_init(&mutex, NULL);
+    output = [[AVCaptureVideoDataOutput  alloc] init];
     
-    videoCamera = [[GPUImageVideoCamera alloc] initWithSessionPreset:AVCaptureSessionPreset640x480 cameraPosition:AVCaptureDevicePositionBack];
-    videoCamera.outputImageOrientation = UIInterfaceOrientationPortrait;
-    videoCamera.horizontallyMirrorFrontFacingCamera = NO;
-    videoCamera.horizontallyMirrorRearFacingCamera = NO;
-    
-    mRawOutput = [[GPUImageRawDataOutput alloc] initWithImageSize:CGSizeMake(640, 480) resultsInBGRAFormat:YES];
-    
-    filter = [[GPUImageBrightnessFilter alloc] init];
-    [filter setBrightness:0.2f];
-    
-    
-    __unsafe_unretained GPUImageRawDataOutput *outputFilter = mRawOutput;
-    [mRawOutput setNewFrameAvailableBlock:^{
-        @synchronized(self) {
-            @try {
-                [outputFilter lockFramebufferForReading];
-                uint8_t *tmp = outputFilter.rawBytesForImage;
-                MSPicture dest;
-                mblk_t* ret = ms_yuv_buf_alloc(&dest, 640, 480);
-                /* convert tmp/RGB -> ret/YUV */
-                for(int y=0; y<480; y++) {
-                    for(int x=0; x<640; x++) {
-                        uint8_t r = tmp[y * 640 * 4 + x * 4 + 0];
-                        uint8_t g = tmp[y * 640 * 4 + x * 4 + 1];
-                        uint8_t b = tmp[y * 640 * 4 + x * 4 + 2];
-//                        // Y
-                        *dest.planes[0]++ = (uint8_t)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);
-                        
-                        // U/V subsampling
-                        if ((y % 2==0) && (x%2==0)) {
-                            uint32_t r32=0, g32=0, b32=0;
-                            for(int i=0; i<2; i++) {
-                                for(int j=0; j<2; j++) {
-                                    r32 += tmp[(y+i) * 640 * 4 + (x+j) * 4 + 0];
-                                    g32 += tmp[(y+i) * 640 * 4 + (x+j) * 4 + 1];
-                                    b32 += tmp[(y+i) * 640 * 4 + (x+j) * 4 + 2];
-                                }
-                            }
-                            r32 = (uint32_t)(r32 * 0.25f);
-                            g32 = (uint32_t)(g32 * 0.25f);
-                            b32 = (uint32_t)(b32 * 0.25f);
-                            // U
-                            *dest.planes[1]++ = (uint8_t)(-(0.148 * r32) - (0.291 * g32) + (0.439 * b32) + 128);
-                            // V
-                            *dest.planes[2]++ = (uint8_t)((0.439 * r32) - (0.368 * g32) - (0.071 * b32) + 128);
-                        }
-                    }
-                }
-                ms_mutex_lock(&mutex);
-                if (msframe!=NULL) {
-                    freemsg(msframe);
-                }
-                msframe = ret;
-            } @finally {
-                ms_mutex_unlock(&mutex);
-                [outputFilter unlockFramebufferAfterReading];
-            }
-        }
-    }];
-    [filter addTarget:mRawOutput];
-    [videoCamera addTarget:mRawOutput];
-    //	output = [[AVCaptureVideoDataOutput  alloc] init];
-//    bufAllocator = ms_yuv_buf_allocator_new();
+    bufAllocator = ms_yuv_buf_allocator_new();
     
     [self setOpaque:YES];
     [self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
@@ -200,8 +131,8 @@ static void capture_queue_cleanup(void* p) {
     /*
      Currently, the only supported key is kCVPixelBufferPixelFormatTypeKey. Supported pixel formats are kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange and kCVPixelFormatType_32BGRA, except on iPhone 3G, where the supported pixel formats are kCVPixelFormatType_422YpCbCr8 and kCVPixelFormatType_32BGRA..
      */
-    //	NSDictionary* dic = @{ (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) };
-    //	[output setVideoSettings:dic];
+    NSDictionary* dic = @{ (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) };
+    [output setVideoSettings:dic];
     
     /* Set the layer */
     AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)self.layer;
@@ -241,7 +172,7 @@ static void capture_queue_cleanup(void* p) {
                 frame=nil;
                 return;
             }
-            
+
             /*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
             size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
             size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
@@ -350,45 +281,45 @@ static void capture_queue_cleanup(void* p) {
 }
 
 - (void)openDevice:(const char*) device_Id {
-    //	NSError *error = nil;
-    //	unsigned int i = 0;
-    //	AVCaptureDevice * device = NULL;
-    //	self->deviceId = device_Id;
-    //
-    //	NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-    //	for (i = 0 ; i < [array count]; i++) {
-    //		AVCaptureDevice * currentDevice = [array objectAtIndex:i];
-    //		if(!strcmp([[currentDevice uniqueID] UTF8String], device_Id)) {
-    //			device = currentDevice;
-    //			break;
-    //		}
-    //	}
-    //	if (device == NULL) {
-    //		ms_error("Error: camera %s not found, using default one", device_Id);
-    //		device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-    //	}
-    //	input = [AVCaptureDeviceInput deviceInputWithDevice:device
-    //												  error:&error];
-    //
-    //	AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-    //	if ( input && [session canAddInput:input] ){
-    //		[input retain]; // keep reference on an externally allocated object
-    //		[session addInput:input];
-    //	} else {
-    //		ms_error("Error: input nil or cannot be added: %p", input);
-    //	}
-    //	if( output && [session canAddOutput:output] ){
-    //		[session addOutput:output];
-    //	} else {
-    //		ms_error("Error: output nil or cannot be added: %p", output);
-    //	}
+    NSError *error = nil;
+    unsigned int i = 0;
+    AVCaptureDevice * device = NULL;
+    self->deviceId = device_Id;
+    
+    NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+    for (i = 0 ; i < [array count]; i++) {
+        AVCaptureDevice * currentDevice = [array objectAtIndex:i];
+        if(!strcmp([[currentDevice uniqueID] UTF8String], device_Id)) {
+            device = currentDevice;
+            break;
+        }
+    }
+    if (device == NULL) {
+        ms_error("Error: camera %s not found, using default one", device_Id);
+        device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    }
+    input = [AVCaptureDeviceInput deviceInputWithDevice:device
+                                                  error:&error];
+    
+    AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+    if ( input && [session canAddInput:input] ){
+        [input retain]; // keep reference on an externally allocated object
+        [session addInput:input];
+    } else {
+        ms_error("Error: input nil or cannot be added: %p", input);
+    }
+    if( output && [session canAddOutput:output] ){
+        [session addOutput:output];
+    } else {
+        ms_error("Error: output nil or cannot be added: %p", output);
+    }
 }
 
 - (void)dealloc {
-    //	AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-    //	[session removeInput:input];
-    //	[session removeOutput:output];
-    //	[output release];
+    AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+    [session removeInput:input];
+    [session removeOutput:output];
+    [output release];
     [parentView release];
     
     if (bufAllocator) {
@@ -409,39 +340,36 @@ static void capture_queue_cleanup(void* p) {
 - (int)start {
     NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
     @synchronized(self) {
-        [videoCamera startCameraCapture];
-        //		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-        //		if (!session.running) {
-        //			// Init queue
-        //			dispatch_queue_t queue = dispatch_queue_create("CaptureQueue", NULL);
-        //			dispatch_set_context(queue, [self retain]);
-        //			dispatch_set_finalizer_f(queue, capture_queue_cleanup);
-        //			[output setSampleBufferDelegate:self queue:queue];
-        //			dispatch_release(queue);
-        //
-        //			[session startRunning]; //warning can take around 1s before returning
-        snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
-        ms_video_init_average_fps(&averageFps, fps_context);
-        //
-        ms_message("ioscapture video device started.");
-        //		}
+        AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+        if (!session.running) {
+            // Init queue
+            dispatch_queue_t queue = dispatch_queue_create("CaptureQueue", NULL);
+            dispatch_set_context(queue, [self retain]);
+            dispatch_set_finalizer_f(queue, capture_queue_cleanup);
+            [output setSampleBufferDelegate:self queue:queue];
+            dispatch_release(queue);
+            
+            [session startRunning]; //warning can take around 1s before returning
+            snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
+            ms_video_init_average_fps(&averageFps, fps_context);
+            
+            ms_message("ioscapture video device started.");
+        }
     }
     [myPool drain];
-    
     return 0;
 }
 
 - (int)stop {
     NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
     @synchronized(self) {
-        [videoCamera stopCameraCapture];
-        //		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-        //		if (session.running) {
-        //			[session stopRunning];
-        //
-        //			// Will free the queue
-        //			[output setSampleBufferDelegate:nil queue:nil];
-        //		}
+        AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+        if (session.running) {
+            [session stopRunning];
+            
+            // Will free the queue
+            [output setSampleBufferDelegate:nil queue:nil];
+        }
     }
     [myPool drain];
     return 0;
@@ -464,100 +392,100 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 
 - (void)configureSize:(MSVideoSize) outputSize
           withSession:(AVCaptureSession *) session {
-    //	if (((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_1080P_W * MS_VIDEO_SIZE_1080P_H))
-    //		|| ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_720P_W * MS_VIDEO_SIZE_720P_H))) {
-    //		[session setSessionPreset: AVCaptureSessionPreset1280x720];
-    //		mCameraVideoSize = outputSize;
-    //		// Force 4/3 ratio
-    //		mOutputVideoSize.width = (outputSize.width / 4) * 3;
-    //		mOutputVideoSize.height = outputSize.height;
-    //		mDownScalingRequired = false;
-    //	} else if ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
-    //		[session setSessionPreset: AVCaptureSessionPreset640x480];
-    mCameraVideoSize = MS_VIDEO_SIZE_VGA;
-    mOutputVideoSize = mCameraVideoSize;
-    mDownScalingRequired = false;
-    //	} else if ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_QVGA_W * MS_VIDEO_SIZE_QVGA_H)) {
-    //		[session setSessionPreset: AVCaptureSessionPreset640x480];
-    //		mCameraVideoSize = MS_VIDEO_SIZE_VGA;
-    //		mOutputVideoSize = MS_VIDEO_SIZE_QVGA;
-    //		mDownScalingRequired = true;
-    //	} else if ( (outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_CIF_W * MS_VIDEO_SIZE_CIF_H) ){
-    //		[session setSessionPreset:AVCaptureSessionPreset352x288];
-    //        mCameraVideoSize     = MS_VIDEO_SIZE_CIF;
-    //        mOutputVideoSize     = MS_VIDEO_SIZE_CIF;
-    //        mDownScalingRequired = FALSE;
-    //	} else if ( (outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_QCIF_W * MS_VIDEO_SIZE_QCIF_H) ){
-    //		[session setSessionPreset:AVCaptureSessionPreset352x288];
-    //        mCameraVideoSize     = MS_VIDEO_SIZE_CIF;
-    //        mOutputVideoSize     = MS_VIDEO_SIZE_QCIF;
-    //        mDownScalingRequired = TRUE;
-    //	} else {
-    //		// Default case
-    //		[session setSessionPreset: AVCaptureSessionPresetMedium];
-    //		mCameraVideoSize = MS_VIDEO_SIZE_IOS_MEDIUM;
-    //		mOutputVideoSize = mCameraVideoSize;
-    //		mDownScalingRequired = false;
-    //	}
+    if (((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_1080P_W * MS_VIDEO_SIZE_1080P_H))
+        || ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_720P_W * MS_VIDEO_SIZE_720P_H))) {
+        [session setSessionPreset: AVCaptureSessionPreset1280x720];
+        mCameraVideoSize = outputSize;
+        // Force 4/3 ratio
+        mOutputVideoSize.width = (outputSize.width / 4) * 3;
+        mOutputVideoSize.height = outputSize.height;
+        mDownScalingRequired = false;
+    } else if ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
+        [session setSessionPreset: AVCaptureSessionPreset640x480];
+        mCameraVideoSize = MS_VIDEO_SIZE_VGA;
+        mOutputVideoSize = mCameraVideoSize;
+        mDownScalingRequired = false;
+    } else if ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_QVGA_W * MS_VIDEO_SIZE_QVGA_H)) {
+        [session setSessionPreset: AVCaptureSessionPreset640x480];
+        mCameraVideoSize = MS_VIDEO_SIZE_VGA;
+        mOutputVideoSize = MS_VIDEO_SIZE_QVGA;
+        mDownScalingRequired = true;
+    } else if ( (outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_CIF_W * MS_VIDEO_SIZE_CIF_H) ){
+        [session setSessionPreset:AVCaptureSessionPreset352x288];
+        mCameraVideoSize     = MS_VIDEO_SIZE_CIF;
+        mOutputVideoSize     = MS_VIDEO_SIZE_CIF;
+        mDownScalingRequired = FALSE;
+    } else if ( (outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_QCIF_W * MS_VIDEO_SIZE_QCIF_H) ){
+        [session setSessionPreset:AVCaptureSessionPreset352x288];
+        mCameraVideoSize     = MS_VIDEO_SIZE_CIF;
+        mOutputVideoSize     = MS_VIDEO_SIZE_QCIF;
+        mDownScalingRequired = TRUE;
+    } else {
+        // Default case
+        [session setSessionPreset: AVCaptureSessionPresetMedium];
+        mCameraVideoSize = MS_VIDEO_SIZE_IOS_MEDIUM;
+        mOutputVideoSize = mCameraVideoSize;
+        mDownScalingRequired = false;
+    }
 }
 
 - (void)setSize:(MSVideoSize) size {
     @synchronized(self) {
-        //		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-        //		[session beginConfiguration];
-        MSVideoSize vsize = MS_VIDEO_SIZE_VGA;
-        //		if ((size.width * size.height) > (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
-        //			if ([IOSHardware isHDVideoCapable]) {
-        //				vsize = [IOSHardware HDVideoSize: self->deviceId];
-        //				if ((vsize.width * vsize.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
-        //					vsize = MS_VIDEO_SIZE_VGA;
-        //				}
-        //			} else {
-        //				vsize = MS_VIDEO_SIZE_VGA;
-        //			}
-        //		} else if ((size.width * size.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
-        //			vsize = MS_VIDEO_SIZE_VGA;
-        //		} else if ((size.width * size.height) == (MS_VIDEO_SIZE_QVGA_W * MS_VIDEO_SIZE_QVGA_H)) {
-        //			vsize = MS_VIDEO_SIZE_QVGA;
-        //		} else if ( (size.width * size.height) == (MS_VIDEO_SIZE_CIF_W * MS_VIDEO_SIZE_CIF_H )) {
-        //			vsize = MS_VIDEO_SIZE_CIF;
-        //		} else if ( (size.width * size.height) == (MS_VIDEO_SIZE_QCIF_W * MS_VIDEO_SIZE_QCIF_H) ) {
-        //			vsize = MS_VIDEO_SIZE_QCIF;
-        //		}
-        [self configureSize:vsize withSession:nil];
-        //
-        //		NSArray *connections = output.connections;
-        //		if ([connections count] > 0 && [[connections objectAtIndex:0] isVideoOrientationSupported]) {
-        //			switch (mDeviceOrientation) {
-        //				case 0:
-        //					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortrait];
-        //					ms_message("Configuring camera in AVCaptureVideoOrientationPortrait mode ");
-        //					break;
-        //				case 180:
-        //					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortraitUpsideDown];
-        //					ms_message("Configuring camera in AVCaptureVideoOrientationPortraitUpsideDown mode ");
-        //					break;
-        //				case 90:
-        //					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
-        //					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeLeft mode ");
-        //					break;
-        //				case 270:
-        //					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
-        //					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeRight mode ");
-        //				default:
-        //					break;
-        //			}
-        //		}
-        //
-        //
-        //		if (mDeviceOrientation == 0 || mDeviceOrientation == 180) {
-        //			MSVideoSize tmpSize = mOutputVideoSize;
-        //			mOutputVideoSize.width=tmpSize.height;
-        //			mOutputVideoSize.height=tmpSize.width;
-        //		}
-        //
-        //		[session commitConfiguration];
-        //		return;
+        AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+        [session beginConfiguration];
+        MSVideoSize vsize = MS_VIDEO_SIZE_IOS_MEDIUM;
+        if ((size.width * size.height) > (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
+            if ([IOSHardware isHDVideoCapable]) {
+                vsize = [IOSHardware HDVideoSize: self->deviceId];
+                if ((vsize.width * vsize.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
+                    vsize = MS_VIDEO_SIZE_VGA;
+                }
+            } else {
+                vsize = MS_VIDEO_SIZE_VGA;
+            }
+        } else if ((size.width * size.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
+            vsize = MS_VIDEO_SIZE_VGA;
+        } else if ((size.width * size.height) == (MS_VIDEO_SIZE_QVGA_W * MS_VIDEO_SIZE_QVGA_H)) {
+            vsize = MS_VIDEO_SIZE_QVGA;
+        } else if ( (size.width * size.height) == (MS_VIDEO_SIZE_CIF_W * MS_VIDEO_SIZE_CIF_H )) {
+            vsize = MS_VIDEO_SIZE_CIF;
+        } else if ( (size.width * size.height) == (MS_VIDEO_SIZE_QCIF_W * MS_VIDEO_SIZE_QCIF_H) ) {
+            vsize = MS_VIDEO_SIZE_QCIF;
+        }
+        [self configureSize:vsize withSession:session];
+        
+        NSArray *connections = output.connections;
+        if ([connections count] > 0 && [[connections objectAtIndex:0] isVideoOrientationSupported]) {
+            switch (mDeviceOrientation) {
+                case 0:
+                    [[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortrait];
+                    ms_message("Configuring camera in AVCaptureVideoOrientationPortrait mode ");
+                    break;
+                case 180:
+                    [[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortraitUpsideDown];
+                    ms_message("Configuring camera in AVCaptureVideoOrientationPortraitUpsideDown mode ");
+                    break;
+                case 90:
+                    [[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
+                    ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeLeft mode ");
+                    break;
+                case 270:
+                    [[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
+                    ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeRight mode ");
+                default:
+                    break;
+            }
+        }
+        
+        
+        if (mDeviceOrientation == 0 || mDeviceOrientation == 180) {
+            MSVideoSize tmpSize = mOutputVideoSize;
+            mOutputVideoSize.width=tmpSize.height;
+            mOutputVideoSize.height=tmpSize.width;
+        }
+        
+        [session commitConfiguration];
+        return;
     }
 }
 
@@ -567,38 +495,38 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 
 - (void)setFps:(float) value {
     @synchronized(self) {
-        //		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-        //		[session beginConfiguration];
-        //
-        //		if( [[[UIDevice currentDevice] systemVersion] floatValue] >= 7 ){
-        //			for( AVCaptureDeviceInput* devinput in [session inputs] ) {
-        //
-        //				NSError* err = nil;
-        //				if( [devinput.device lockForConfiguration:&err] == YES ){
-        //
-        //					[devinput.device setActiveVideoMinFrameDuration:CMTimeMake(1, value)];
-        //					[devinput.device setActiveVideoMaxFrameDuration:CMTimeMake(1, value)];
-        //
-        //					[devinput.device unlockForConfiguration];
-        //				} else {
-        //					ms_error("Couldn't obtain lock to set capture FPS: %s", err?[err.description UTF8String] : "");
-        //				}
-        //
-        //				break;
-        //			}
-        //		} else {
-        // Pre-iOS7 method
-        //			NSArray *connections = output.connections;
-        //			if ([connections count] > 0) {
-        //				[[connections objectAtIndex:0] setVideoMinFrameDuration:CMTimeMake(1, value)];
-        //				[[connections objectAtIndex:0] setVideoMaxFrameDuration:CMTimeMake(1, value)];
-        //			}
-        //		}
+        AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+        [session beginConfiguration];
+        
+        if( [[[UIDevice currentDevice] systemVersion] floatValue] >= 7 ){
+            for( AVCaptureDeviceInput* devinput in [session inputs] ) {
+                
+                NSError* err = nil;
+                if( [devinput.device lockForConfiguration:&err] == YES ){
+                    
+                    [devinput.device setActiveVideoMinFrameDuration:CMTimeMake(1, value)];
+                    [devinput.device setActiveVideoMaxFrameDuration:CMTimeMake(1, value)];
+                    
+                    [devinput.device unlockForConfiguration];
+                } else {
+                    ms_error("Couldn't obtain lock to set capture FPS: %s", err?[err.description UTF8String] : "");
+                }
+                
+                break;
+            }
+        } else {
+            // Pre-iOS7 method
+            NSArray *connections = output.connections;
+            if ([connections count] > 0) {
+                [[connections objectAtIndex:0] setVideoMinFrameDuration:CMTimeMake(1, value)];
+                [[connections objectAtIndex:0] setVideoMaxFrameDuration:CMTimeMake(1, value)];
+            }
+        }
         
         fps=value;
         snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
         ms_video_init_average_fps(&averageFps, fps_context);
-        //		[session commitConfiguration];
+        [session commitConfiguration];
     }
 }
 

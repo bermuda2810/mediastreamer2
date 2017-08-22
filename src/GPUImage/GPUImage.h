@@ -169,3 +169,4 @@
 #import "GPUImageColourFASTSamplingOperation.h"
 #import "LFGPUImageBeautyFilter.h"
 #import "GPUImageBeautifyFilter.h"
+#import "GPURenderFrame.h"

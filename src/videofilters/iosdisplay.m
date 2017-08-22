@@ -41,9 +41,11 @@
 #include "opengles_display.h"
 #import "GPUImage.h"
 
-@interface IOSDisplay : UIView {
+@interface IOSDisplay : GPUImageView {
+    
 @public
 	struct opengles_display* display_helper;
+    GPURenderFrame *renderFrame;
 
 @private
 	NSRecursiveLock* lock;
@@ -52,6 +54,7 @@
 	id displayLink;
 	BOOL animating;
 	CGRect prevBounds;
+    GPUImageBeautifyFilter *filter;
 }
 
 @property (nonatomic, retain) UIView* parentView;
@@ -72,18 +75,22 @@
 	self->display_helper = ogl_display_new();
 	self->prevBounds = CGRectMake(0, 0, 0, 0);
 	self->context = nil;
-
-	// Init view
-	[self setOpaque:YES];
-	[self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
-
-	// Init layer
-	CAEAGLLayer *eaglLayer = (CAEAGLLayer*) self.layer;
-	[eaglLayer setOpaque:YES];
-	[eaglLayer setDrawableProperties: [NSDictionary dictionaryWithObjectsAndKeys:
-									   [NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking,
-									   kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat,
-									   nil]];
+    
+    renderFrame = [[GPURenderFrame alloc] init];
+    filter = [[GPUImageBeautifyFilter alloc] init];
+    [filter addTarget:self];
+    [renderFrame addTarget:filter];
+    
+//    // Init view
+//	[self setOpaque:YES];
+//	[self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
+//	// Init layer
+//	CAEAGLLayer *eaglLayer = (CAEAGLLayer*) self.layer;
+//	[eaglLayer setOpaque:YES];
+//	[eaglLayer setDrawableProperties: [NSDictionary dictionaryWithObjectsAndKeys:
+//									   [NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking,
+//									   kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat,
+//									   nil]];
 }
 
 - (id)init {
@@ -111,66 +118,66 @@
 }
 
 - (void)initOpenGL {
-	// Init OpenGL context
-	context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-	if (!context || ![EAGLContext setCurrentContext:context]) {
-		ms_error("Opengl context failure");
-		return;
-	}
-
-	glGenFramebuffers(1, &defaultFrameBuffer);
-	glGenRenderbuffers(1, &colorRenderBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
-	ogl_display_init(display_helper, NULL, prevBounds.size.width, prevBounds.size.height);
-
-	// release GL context for this thread
-	[EAGLContext setCurrentContext:nil];
+//	 Init OpenGL context
+//	context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+//	if (!context || ![EAGLContext setCurrentContext:context]) {
+//		ms_error("Opengl context failure");
+//		return;
+//	}
+//
+//	glGenFramebuffers(1, &defaultFrameBuffer);
+//	glGenRenderbuffers(1, &colorRenderBuffer);
+//	glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
+//	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
+//	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
+//	ogl_display_init(display_helper, NULL, prevBounds.size.width, prevBounds.size.height);
+//
+//	// release GL context for this thread
+//	[EAGLContext setCurrentContext:nil];
 }
 
 - (void)drawView {
 	/* no opengl es call made when in background */
-	if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive)
-		return;
-	if([lock tryLock]) {
-		if(context == nil) {
-			[self initOpenGL];
-		}
-		if (![EAGLContext setCurrentContext:context]) {
-			ms_error("Failed to bind GL context");
-			return;
-		}
-
-		if (!CGRectEqualToRect(prevBounds, [self bounds])) {
-			CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
-
-			if (prevBounds.size.width != 0 || prevBounds.size.height != 0) {
-				// release previously allocated storage
-				[context renderbufferStorage:GL_RENDERBUFFER fromDrawable:nil];
-			}
-
-			prevBounds = [self bounds];
-
-			// allocate storage
-			if ([context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
-				ms_message("GL renderbuffer allocation size (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
-				ogl_display_set_size(display_helper, prevBounds.size.width, prevBounds.size.height);
-				glClear(GL_COLOR_BUFFER_BIT);
-			} else {
-				ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
-			}
-		}
-
-		if (!animating) {
-			glClear(GL_COLOR_BUFFER_BIT);
-		} else {
-			ogl_display_render(display_helper, deviceRotation);
-		}
-
-		[context presentRenderbuffer:GL_RENDERBUFFER];
-		[lock unlock];
-	}
+//	if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive)
+//		return;
+//	if([lock tryLock]) {
+//		if(context == nil) {
+//			[self initOpenGL];
+//		}
+//		if (![EAGLContext setCurrentContext:context]) {
+//			ms_error("Failed to bind GL context");
+//			return;
+//		}
+//
+//		if (!CGRectEqualToRect(prevBounds, [self bounds])) {
+//			CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
+//
+//			if (prevBounds.size.width != 0 || prevBounds.size.height != 0) {
+//				// release previously allocated storage
+//				[context renderbufferStorage:GL_RENDERBUFFER fromDrawable:nil];
+//			}
+//
+//			prevBounds = [self bounds];
+//
+//			// allocate storage
+//			if ([context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
+//				ms_message("GL renderbuffer allocation size (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
+//				ogl_display_set_size(display_helper, prevBounds.size.width, prevBounds.size.height);
+//				glClear(GL_COLOR_BUFFER_BIT);
+//			} else {
+//				ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
+//			}
+//		}
+//
+//		if (!animating) {
+//			glClear(GL_COLOR_BUFFER_BIT);
+//		} else {
+//			ogl_display_render(display_helper, deviceRotation);
+//		}
+//
+//		[context presentRenderbuffer:GL_RENDERBUFFER];
+//		[lock unlock];
+//	}
 }
 
 - (void)setParentView:(UIView*)aparentView{
@@ -205,9 +212,9 @@
 		[parentView addSubview:self];
 
 		// schedule rendering
-		displayLink = [NSClassFromString(@"CADisplayLink") displayLinkWithTarget:self selector:@selector(drawView)];
-		[displayLink setFrameInterval:1];
-		[displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+//		displayLink = [NSClassFromString(@"CADisplayLink") displayLinkWithTarget:self selector:@selector(drawView)];
+//		[displayLink setFrameInterval:1];
+//		[displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 	}
 }
 
@@ -216,23 +223,30 @@
 }
 
 - (void)dealloc {
-	[EAGLContext setCurrentContext:context];
-
-	ogl_display_uninit(display_helper, TRUE);
-	ogl_display_free(display_helper);
-	display_helper = NULL;
-
-	glDeleteFramebuffers(1, &defaultFrameBuffer);
-	glDeleteRenderbuffers(1, &colorRenderBuffer);
-
-	[EAGLContext setCurrentContext:0];
-
-	[context release];
+//	[EAGLContext setCurrentContext:context];
+//
+//	ogl_display_uninit(display_helper, TRUE);
+//	ogl_display_free(display_helper);
+//	display_helper = NULL;
+//
+//	glDeleteFramebuffers(1, &defaultFrameBuffer);
+//	glDeleteRenderbuffers(1, &colorRenderBuffer);
+//
+//	[EAGLContext setCurrentContext:0];
+//
+//	[context release];
 	[lock release];
 
 	self.parentView = nil;
 
 	[super dealloc];
+}
+
+-(int) pixel_unpack_alignment:(uint8_t *)ptr datasize:(int)datasize {
+    uintptr_t num_ptr = (uintptr_t) ptr;
+    int alignment_ptr = !(num_ptr % 4) ? 4 : !(num_ptr % 2) ? 2 : 1;
+    int alignment_data = !(datasize % 4) ? 4 : !(datasize % 2) ? 2 : 1;
+    return (alignment_ptr <= alignment_data) ? alignment_ptr : alignment_data;
 }
 
 @end
@@ -247,16 +261,70 @@ static void iosdisplay_process(MSFilter *f) {
 	IOSDisplay* thiz = (IOSDisplay*)f->data;
 
 	mblk_t *m = ms_queue_peek_last(f->inputs[0]);
-
+    
 	if (thiz != nil && m != nil) {
-		ogl_display_set_yuv_to_display(thiz->display_helper, m);
+        MSPicture picture;
+        ms_yuv_buf_init_from_mblk(&picture, m);
+        
+        int size_cbcr = picture.w * picture.h * 0.5;
+        int length_u_v = picture.w * picture.h * 0.25;
+        
+        uint8_t planecCbCr[size_cbcr];
+        
+        for (int i = 0,j=0;i<length_u_v;i++) {
+            planecCbCr[j++] = picture.planes[1][i];
+            planecCbCr[j++] = picture.planes[2][i];
+        }
+        
+        NSDictionary *pixelAttributes = [NSDictionary dictionaryWithObjectsAndKeys:
+                                         [NSDictionary dictionary], (id)kCVPixelBufferIOSurfacePropertiesKey,
+                                         nil];
+        
+        CVImageBufferRef yBuffer;
+        
+        CVPixelBufferCreate(kCFAllocatorDefault,
+                            picture.w,
+                            picture.h,
+                            kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+                            (__bridge CFDictionaryRef _Nullable)(pixelAttributes),
+                            &yBuffer);
+        
+        CVPixelBufferLockBaseAddress(yBuffer,0);
+        uint8_t *yDestPlane = CVPixelBufferGetBaseAddressOfPlane(yBuffer,0);
+        memcpy(yDestPlane, picture.planes[0], picture.h*picture.w);
+        uint8_t *cbcr = CVPixelBufferGetBaseAddressOfPlane(yBuffer,1);
+        memcpy(cbcr, planecCbCr, size_cbcr);
+        CVPixelBufferUnlockBaseAddress(yBuffer, 0);
+        
+        unsigned int aligned_yuv_w, aligned_yuv_h;
+        int alignment = 0;
+        
+        if (picture.w == 0 || picture.h == 0) {
+            return;
+        }
+        
+        /* alignment of pointers and datasize */
+        {
+            int alig_Y = [thiz pixel_unpack_alignment:picture.planes[0] datasize:picture.w * picture.h];
+            int alig_U = [thiz pixel_unpack_alignment:picture.planes[1] datasize:picture.w >> 1];
+            int alig_V = [thiz pixel_unpack_alignment:picture.planes[2] datasize:picture.w >> 1];
+            alignment = (alig_U > alig_V)
+            ? ((alig_V > alig_Y) ? alig_Y : alig_V)
+            :	((alig_U > alig_Y) ? alig_Y : alig_U);
+        }
+        
+        [thiz->renderFrame processVideoSampleBuffer:yBuffer alignment:alignment];
+//		ogl_display_set_yuv_to_display(thiz->display_helper, m);
 	}
+        
 	ms_queue_flush(f->inputs[0]);
 
 	if (f->inputs[1] != NULL) {
 		ms_queue_flush(f->inputs[1]);
 	}
 }
+
+
 
 static void iosdisplay_uninit(MSFilter *f) {
 	IOSDisplay* thiz = (IOSDisplay*)f->data;

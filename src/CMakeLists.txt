@@ -516,6 +516,7 @@ GPUImage/GLProgram.m
 				GPUImage/GPUImageView.m
 				GPUImage/LFGPUImageBeautyFilter.m
 				GPUImage/GPUImageBeautifyFilter.m
+				GPUImage/GPURenderFrame.m
 			)
 		else()
 			list(APPEND VOIP_SOURCE_FILES_OBJC
